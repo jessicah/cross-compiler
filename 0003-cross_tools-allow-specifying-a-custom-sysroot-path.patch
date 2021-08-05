@@ -1,7 +1,7 @@
-From 87fdf5d4d3101542991dfeb729529eb72b4a18d7 Mon Sep 17 00:00:00 2001
+From 58cf54e43c401c4d6c47b9e0968a85ffd2a243dc Mon Sep 17 00:00:00 2001
 From: Jessica Hamilton <jessica.l.hamilton@gmail.com>
 Date: Wed, 21 Jul 2021 01:28:04 +0000
-Subject: [PATCH] cross_tools: allow specifying a custom sysroot path
+Subject: [PATCH 3/3] cross_tools: allow specifying a custom sysroot path
 
 * Use with --sysroot /path/to/sysroot
 ---
@@ -10,7 +10,7 @@ Subject: [PATCH] cross_tools: allow specifying a custom sysroot path
  2 files changed, 12 insertions(+), 3 deletions(-)
 
 diff --git a/build/scripts/build_cross_tools_gcc4 b/build/scripts/build_cross_tools_gcc4
-index 55bee36d50..ac6b94861e 100755
+index 55bee36d505..ac6b94861ee 100755
 --- a/build/scripts/build_cross_tools_gcc4
 +++ b/build/scripts/build_cross_tools_gcc4
 @@ -161,7 +161,7 @@ binutilsObjDir="$objDir/binutils"
@@ -36,7 +36,7 @@ index 55bee36d50..ac6b94861e 100755
  # remove the objects dir
  rm -rf "$objDir"
 diff --git a/configure b/configure
-index e837d06291..3b5f3e1b4a 100755
+index e837d062918..3b5f3e1b4a2 100755
 --- a/configure
 +++ b/configure
 @@ -679,6 +679,11 @@ supportedTargetArchs="

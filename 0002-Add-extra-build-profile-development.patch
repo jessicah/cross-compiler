@@ -1,0 +1,162 @@
+From 038af6af8116f9ce58581a2d22e56a88cf168278 Mon Sep 17 00:00:00 2001
+From: Jessica Hamilton <jessica.l.hamilton@gmail.com>
+Date: Tue, 6 Jul 2021 04:36:15 +0000
+Subject: [PATCH 2/3] Add extra build profile, development.
+
+* Like nightly, but excludes userguide, source, and welcome packages.
+* Add an optional UserProfileConfig, like UserBuildConfig, but read
+  before rules loaded, allowing HAIKU_BUILD_PROFILE to be overridden
+  to use a given build profile without specifying on the command line.
+
+Change-Id: Ibba5d54f56cd72a5f2ed61215b5783bb57d49f74
+---
+ Jamrules                       |  7 +++++
+ build/jam/CommandLineArguments |  2 +-
+ build/jam/DefaultBuildProfiles | 56 ++++++++++++++++++++++++++++++++++
+ build/jam/repositories/Haiku   | 11 ++++++-
+ 4 files changed, 74 insertions(+), 2 deletions(-)
+
+diff --git a/Jamrules b/Jamrules
+index f242565d9c0..ac02d9148ff 100644
+--- a/Jamrules
++++ b/Jamrules
+@@ -12,6 +12,13 @@ if $(JAMBASEDATE) < 2018 {
+ 		"by updating Jam itself.)" ;
+ }
+ 
++# allow for a separate UserProfileConfig per output directory
++local userProfileConfig
++	= [ GLOB $(HAIKU_OUTPUT_DIR) : UserProfileConfig ] ;
++if $(userProfileConfig) {
++	include $(userProfileConfig) ;
++}
++
+ # Make sure HAIKU_TOP is a relative path (and prefer it to be the current or
+ # parent directory.)
+ #
+diff --git a/build/jam/CommandLineArguments b/build/jam/CommandLineArguments
+index 26259bdc4c7..8208570d517 100644
+--- a/build/jam/CommandLineArguments
++++ b/build/jam/CommandLineArguments
+@@ -4,7 +4,7 @@ rule ProcessCommandLineArguments
+ {
+ 	# analyze and optionally replace jam's target parameters
+ 	HAIKU_ORIGINAL_JAM_TARGETS = $(JAM_TARGETS) ;
+-	HAIKU_BUILD_PROFILE = ;
++	HAIKU_BUILD_PROFILE ?= ;
+ 	if $(JAM_TARGETS) {
+ 		switch $(JAM_TARGETS[1]) {
+ 			# If the target to be built is "all" (i.e. the default) and we're in
+diff --git a/build/jam/DefaultBuildProfiles b/build/jam/DefaultBuildProfiles
+index 92741f651ed..cee08495ca8 100644
+--- a/build/jam/DefaultBuildProfiles
++++ b/build/jam/DefaultBuildProfiles
+@@ -20,6 +20,14 @@ switch $(HAIKU_BUILD_PROFILE) {
+ 		TARGET_DEFINES += HAIKU_MINIMUM_BUILD ;
+ 	}
+ 
++	case "development-*" : {
++		HAIKU_BUILD_TYPE = development ;
++		EnableBuildFeatures development_image ;
++
++		HAIKU_DEFINES += HAIKU_REGULAR_BUILD ;
++		TARGET_DEFINES += HAIKU_REGULAR_BUILD ;
++	}
++
+ 	case "*" : {
+ 		HAIKU_BUILD_TYPE = regular ;
+ 		EnableBuildFeatures regular_image ;
+@@ -63,6 +71,14 @@ rule DefineDefaultBuildProfiles
+ 	DefineBuildProfile minimum-anyboot : anyboot-image
+ 		: "haiku-minimum-anyboot.iso" ;
+ 
++	# development profiles
++	DefineBuildProfile development-raw : image : "haiku-minimum.image" ;
++	DefineBuildProfile development-mmc : haiku-mmc-image : "haiku-development.mmc" ;
++	DefineBuildProfile development-vmware : vmware-image : "haiku-development.vmdk" ;
++	DefineBuildProfile development-cd : cd-image : "haiku-development.iso" ;
++	DefineBuildProfile development-anyboot : anyboot-image
++		: "haiku-development-anyboot.iso" ;
++
+ 	switch $(HAIKU_BUILD_PROFILE) {
+ 		case "release-*" : {
+ 			Echo Building Haiku R1/development preview ;
+@@ -165,6 +181,46 @@ rule DefineDefaultBuildProfiles
+ 			}
+ 		}
+ 
++		case "development-*" : {
++			Echo Building Haiku Development ;
++			HAIKU_ROOT_USER_NAME ?= user ;
++			HAIKU_ROOT_USER_REAL_NAME ?= "Yourself" ;
++			AddGroupToHaikuImage party : 101 : user sshd ;
++			HAIKU_IMAGE_HOST_NAME ?= shredder ;
++			if $(DEBUG) != 0 {
++				HAIKU_IMAGE_SIZE ?= 850 ;
++			}
++			HAIKU_IMAGE_SIZE ?= 600 ;
++			HAIKU_NIGHTLY_BUILD = 1 ;
++
++			AddHaikuImageSystemPackages
++				mandoc
++				noto
++				openssh
++				openssl
++				pe
++				vision
++				wpa_supplicant
++				# xz_utils can't be built with gcc2, so we install it for
++				# primary gcc 8 architectures or gcc 2 hybrids.
++				!gcc2 @{ nano p7zip xz_utils }@
++				gcc2 @{
++					nano_x86@secondary_x86
++					p7zip_x86@secondary_x86
++					xz_utils_x86@secondary_x86
++				}@
++				;
++
++			AddOptionalHaikuImagePackages Development Git ;
++
++			# WebPositive can only built for x86_gcc2, x86 and x86_64
++			if $(HAIKU_PACKAGING_ARCHS) in x86_gcc2 x86 x86_64 {
++				AddOptionalHaikuImagePackages WebPositive ;
++			} else {
++				Echo "WebPositive not available on $(HAIKU_PACKAGING_ARCHS)" ;
++			}
++		}
++
+ 		case "minimum-*" : {
+ 			Echo Building Haiku Minimum Target ;
+ 			HAIKU_IMAGE_HOST_NAME ?= shredder ;
+diff --git a/build/jam/repositories/Haiku b/build/jam/repositories/Haiku
+index 52d6eb47e02..79237414f62 100644
+--- a/build/jam/repositories/Haiku
++++ b/build/jam/repositories/Haiku
+@@ -17,7 +17,7 @@ local packages = [ FFilterByBuildFeatures
+ 	haiku_$(secondaryArchs)_devel
+ 	] ;
+ 
+-if $(HAIKU_IS_BOOTSTRAP) != 1 && $(HAIKU_BUILD_TYPE) != minimum {
++if $(HAIKU_IS_BOOTSTRAP) != 1 && $(HAIKU_BUILD_TYPE) != minimum && $(HAIKU_BUILD_TYPE) != development {
+ 	packages += [ FFilterByBuildFeatures
+ 		haiku_extras
+ 		haiku_source
+@@ -49,6 +49,15 @@ if $(HAIKU_IS_BOOTSTRAP) != 1 && $(HAIKU_BUILD_TYPE) != minimum {
+ 		] ;
+ }
+ 
++if $(HAIKU_IS_BOOTSTRAP) != 1 && $(HAIKU_BUILD_TYPE) != minimum {
++	packages += [ FFilterByBuildFeatures
++		haiku_extras
++		makefile_engine
++		netfs
++		userland_fs
++	] ;
++}
++
+ local webPositiveIsAvailable ;
+ local architectureObject ;
+ for architectureObject in [ MultiArchSubDirSetup ] {
+-- 
+2.25.1
+
