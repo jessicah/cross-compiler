@@ -13,3 +13,7 @@ for installing packages. You can install the package containing a specific libra
 simple example. This will fetch both the build time and runtime packages, both of which need to be installed. E.g.
 - `./package-extract.sh libz-*.hpkg`
 - `./package-extract.sh libz_devel-*.hpkg`
+
+Packages can also be downloaded directly at:
+- x86_gcc2 hybrid: https://eu.hpkg.haiku-os.org/haikuports/master/x86_gcc2/current/packages/
+- x86_64: https://eu.hpkg.haiku-os.org/haikuports/master/x86_64/current/packages/
