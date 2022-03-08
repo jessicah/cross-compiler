@@ -115,23 +115,26 @@ echo 'Building Haiku packages and package tool'
 echo 'HAIKU_BUILD_PROFILE = "development-raw" ;' > UserProfileConfig
 "$__RootfsDir/tmp/buildtools/jam/jam0" -j"$JOBS" -q '<build>package' '<repository>Haiku'
 
+# Find the package command
+__PackageCommand=`echo "$__RootfsDir/generated/objects/*/*/release/tools/package/package"`
+
 # Setup the sysroot
 echo 'Extracting packages into sysroot'
 mkdir -p "$__RootfsDir/boot/system"
 for file in "$__RootfsDir/generated/objects/haiku/$__BuildArch/packaging/repositories/Haiku/packages/"*.hpkg; do
 	echo "Extracting $file..."
-	"$__RootfsDir/generated/objects/linux/x86_64/release/tools/package/package" extract -C "$__RootfsDir/boot/system" "$file"
+	"$__PackageCommand" extract -C "$__RootfsDir/boot/system" "$file"
 done
 for file in "$__RootfsDir/generated/download/"*.hpkg; do
 	echo "Extracting $file..."
-	"$__RootfsDir/generated/objects/linux/x86_64/release/tools/package/package" extract -C "$__RootfsDir/boot/system" "$file"
+	"$__PackageCommand" extract -C "$__RootfsDir/boot/system" "$file"
 done
 
 # Create a script for running `package extract`
 cat >"$__RootfsDir/package_extract.sh" <<EOF
 #!/usr/bin/env bash
 
-"$__RootfsDir/generated/objects/linux/x86_64/release/tools/package/package" extract -C "$__RootfsDir/boot/system" "\$1"
+"$__PackageCommand" extract -C "$__RootfsDir/boot/system" "\$1"
 
 echo "Extracted \$1 into the Haiku sysroot"
 EOF
