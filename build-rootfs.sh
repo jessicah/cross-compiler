@@ -86,8 +86,6 @@ fi
 # Fetch some patches that haven't been merged yet
 cd "$__RootfsDir/tmp/haiku"
 git reset --hard origin/master
-## use relative symlinks in _devel package
-git am "$__InitialDir/0001-haiku_devel-use-relative-symlinks-to-libraries-in-ha.patch"
 ## add development build profile (slimmer than nightly)
 git am "$__InitialDir/0002-Add-extra-build-profile-development.patch"
 ## add the patch for providing an explicit sysroot
