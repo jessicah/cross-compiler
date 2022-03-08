@@ -68,7 +68,11 @@ __RootfsDir="$( cd "$__RootfsDir" && pwd )"
 
 JOBS=${MAXJOBS:="$(getconf _NPROCESSORS_ONLN)"}
 
-echo "Building Haiku sysroot for $__BuildArch"
+if [ -z "__BuildSecondaryArch" ]; then
+	echo "Building Haiku sysroot for $__BuildArch"
+else
+	echo "Building Haiku sysroot for $__BuildArch/$__BuildSecondaryArch hybrid"
+fi
 mkdir -p "$__RootfsDir/tmp"
 pushd "$__RootfsDir/tmp"
 if [ ! -e "$__RootfsDir/tmp/haiku/.git" ]; then
