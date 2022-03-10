@@ -116,7 +116,7 @@ echo 'HAIKU_BUILD_PROFILE = "development-raw" ;' > UserProfileConfig
 "$__RootfsDir/tmp/buildtools/jam/jam0" -j"$JOBS" -q '<build>package' '<repository>Haiku'
 
 # Find the package command
-__PackageCommand=`echo "$__RootfsDir/generated/objects/*/*/release/tools/package/package"`
+__PackageCommand=`echo $__RootfsDir/generated/objects/*/*/release/tools/package/package`
 
 # Setup the sysroot
 echo 'Extracting packages into sysroot'
