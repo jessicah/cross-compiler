@@ -68,7 +68,7 @@ __RootfsDir="$( cd "$__RootfsDir" && pwd )"
 
 JOBS=${MAXJOBS:="$(getconf _NPROCESSORS_ONLN)"}
 
-if [ -z "__BuildSecondaryArch" ]; then
+if [ -z "$__BuildSecondaryArch" ]; then
 	echo "Building Haiku sysroot for $__BuildArch"
 else
 	echo "Building Haiku sysroot for $__BuildArch/$__BuildSecondaryArch hybrid"
