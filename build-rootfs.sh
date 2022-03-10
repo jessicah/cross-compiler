@@ -76,7 +76,9 @@ fi
 mkdir -p "$__RootfsDir/tmp"
 pushd "$__RootfsDir/tmp"
 if [ ! -e "$__RootfsDir/tmp/haiku/.git" ]; then
-	git clone --depth=1 https://review.haiku-os.org/haiku
+	git clone https://github.com/haiku/haiku
+	pushd haiku && git remote add review https://review.haiku-os.org/haiku && git fetch --tags review && popd
+	#git clone --depth=1 https://review.haiku-os.org/haiku
 else
 	echo "WARN: skipping clone of haiku repo, already exists"
 fi
