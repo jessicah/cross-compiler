@@ -140,5 +140,9 @@ echo "Extracted \$1 into the Haiku sysroot"
 EOF
 chmod +x "$__RootfsDir/package_extract.sh"
 
+# Clean up
+rm -rf "$__RootfsDir/tmp/" "$__RootfsDir/generated/objects/haiku/" "$__RootfsDir/generated/objects/common"
+rm -rf "$__RootfsDir/generated/attributes/" "$__RootfsDir/generated/download/" "$__RootfsDir/generated/build_packages/"
+
 # And done!
 popd
