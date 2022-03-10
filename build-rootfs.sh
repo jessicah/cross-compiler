@@ -146,3 +146,17 @@ rm -rf "$__RootfsDir/generated/attributes/" "$__RootfsDir/generated/download/" "
 
 # And done!
 popd
+
+if [ -z "$__BuildSecondaryArch" ]; then
+	echo "Completed build of Haiku cross-compiler for $__BuildArch"
+else
+	echo "Completed build of Haiku cross-compiler for $__BuildArch/$__BuildSecondaryArch hybrid"
+fi
+
+echo ""
+echo "Your cross-compiler is available in $__RootfsDir/generated/cross-tools-{ARCH}/bin/,"
+echo "and the sysroot extracted into $__RootfsDir/boot/system."
+echo ""
+echo "You can also use $__RootfsDir/package_extract.sh to extract packages into the sysroot."
+echo "Download packages from https://eu.hpkg.haiku-os.org/haikuports/master/{ARCH}/current/packages."
+echo ""
