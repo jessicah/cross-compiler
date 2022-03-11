@@ -160,5 +160,10 @@ echo "Your cross-compiler is available in $__RootfsDir/generated/cross-tools-{AR
 echo "and the sysroot extracted into $__RootfsDir/boot/system."
 echo ""
 echo "You can also use $__RootfsDir/package_extract.sh to extract packages into the sysroot."
-echo "Download packages from https://eu.hpkg.haiku-os.org/haikuports/master/{ARCH}/current/packages."
+if [ -z "$__BuildSecondaryArch" ]; then
+	echo "Download packages from https://eu.hpkg.haiku-os.org/haikuports/master/$__BuildArch/current/packages."
+else
+	echo "Download primary arch packages from https://eu.hpkg.haiku-os.org/haikuports/master/$__BuildArch/current/packages,"
+	echo "and secondary arch packages from https://eu.hpkg.haiku-os.org/haikuports/master/$__BuildSecondaryArch/current/packages."
+fi
 echo ""
