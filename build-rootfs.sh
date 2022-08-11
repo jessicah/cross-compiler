@@ -95,7 +95,7 @@ git reset --hard origin/master
 ## add development build profile (slimmer than nightly)
 git am "$__InitialDir/0002-Add-extra-build-profile-development.patch"
 ## add the patch for providing an explicit sysroot
-git am "$__InitialDir/0003-cross_tools-allow-specifying-a-custom-sysroot-path.patch"
+#git am "$__InitialDir/0003-cross_tools-allow-specifying-a-custom-sysroot-path.patch"
 
 # Build jam
 echo 'Building jam buildtool'
@@ -142,6 +142,24 @@ echo "Extracted \$1 into the Haiku sysroot"
 EOF
 chmod +x "$__RootfsDir/package_extract.sh"
 
+# Create a script for fetching a list of packages
+cat >"$__RootfsDir/fetch_packages.sh" <<EOF
+#!/usr/bin/env bash
+
+for package in "\$@" ; do
+        json='{"name":"'"\$package"'","repositorySourceCode":"haikuports_x86_64","versionType":"LATEST","naturalLanguageCode":"en"}'
+        echo "Getting download URL for \$package..."
+        url=\$(wget -qO- --post-data="\$json" --header='Content-Type:application/json' 'https://depot.haiku-os.org/__api/v2/pkg/get-pkg' | jq -r '.result.versions[].hpkgDownloadURL')
+        echo "Downloading \$package..."
+        wget -q "\$url"
+        echo "Extracting \$package..."
+        "$__RootfsDir/package_extract.sh" \$package*.hpkg
+done
+
+echo "Downloaded and extracted all packages"
+EOF
+chmod +x "$__RootfsDir/fetch_packages.sh"
+
 # Clean up
 rm -rf "$__RootfsDir/tmp/" "$__RootfsDir/generated/objects/haiku/" "$__RootfsDir/generated/objects/common"
 rm -rf "$__RootfsDir/generated/attributes/" "$__RootfsDir/generated/download/" "$__RootfsDir/generated/build_packages/"
@@ -159,7 +177,9 @@ echo ""
 echo "Your cross-compiler is available in $__RootfsDir/generated/cross-tools-{ARCH}/bin/,"
 echo "and the sysroot extracted into $__RootfsDir/boot/system."
 echo ""
-echo "You can also use $__RootfsDir/package_extract.sh to extract packages into the sysroot."
+echo "You can also use $__RootfsDir/package_extract.sh to extract packages into the sysroot,"
+echo "or use $__RootfsDir/fetch_packages.sh with a space separated list of package names to"
+echo "automatically download and install into the sysroot (requires `jq` to be installed)."
 if [ -z "$__BuildSecondaryArch" ]; then
 	echo "Download packages from https://eu.hpkg.haiku-os.org/haikuports/master/$__BuildArch/current/packages."
 else
