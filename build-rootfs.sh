@@ -74,16 +74,17 @@ else
 	echo "Building Haiku sysroot for $__BuildArch/$__BuildSecondaryArch hybrid"
 fi
 mkdir -p "$__RootfsDir/tmp"
-pushd "$__RootfsDir/tmp"
 if [ ! -e "$__RootfsDir/tmp/haiku/.git" ]; then
+	cd "$__RootfsDir/tmp"
 	git clone https://github.com/haiku/haiku
-	pushd haiku && git remote add review https://review.haiku-os.org/haiku && git fetch --tags review && popd
-	#git clone --depth=1 https://review.haiku-os.org/haiku
+	cd haiku && git remote add review https://review.haiku-os.org/haiku && git fetch --tags review
 else
 	echo "WARN: skipping clone of haiku repo, already exists"
+	cd haiku && git fetch review
 fi
 
 if [ ! -e "$__RootfsDir/tmp/buildtools/.git" ]; then
+	cd "$__RootfsDir/tmp"
 	git clone --depth=1 https://github.com/haiku/buildtools
 else
 	echo "WARN: skipping clone of buildtools repo, already exists"
@@ -91,11 +92,9 @@ fi
 
 # Fetch some patches that haven't been merged yet
 cd "$__RootfsDir/tmp/haiku"
-git reset --hard origin/master
+git reset --hard review/master
 ## add development build profile (slimmer than nightly)
 git am "$__InitialDir/0002-Add-extra-build-profile-development.patch"
-## add the patch for providing an explicit sysroot
-#git am "$__InitialDir/0003-cross_tools-allow-specifying-a-custom-sysroot-path.patch"
 
 # Build jam
 echo 'Building jam buildtool'
@@ -165,8 +164,6 @@ rm -rf "$__RootfsDir/tmp/" "$__RootfsDir/generated/objects/haiku/" "$__RootfsDir
 rm -rf "$__RootfsDir/generated/attributes/" "$__RootfsDir/generated/download/" "$__RootfsDir/generated/build_packages/"
 
 # And done!
-popd
-
 if [ -z "$__BuildSecondaryArch" ]; then
 	echo "Completed build of Haiku cross-compiler for $__BuildArch"
 else
