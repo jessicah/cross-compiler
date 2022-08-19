@@ -145,17 +145,49 @@ chmod +x "$__RootfsDir/package_extract.sh"
 cat >"$__RootfsDir/fetch_packages.sh" <<EOF
 #!/usr/bin/env bash
 
+found_packages=()
+missing_packages=()
+
 for package in "\$@" ; do
-        json='{"name":"'"\$package"'","repositorySourceCode":"haikuports_x86_64","versionType":"LATEST","naturalLanguageCode":"en"}'
-        echo "Getting download URL for \$package..."
-        url=\$(wget -qO- --post-data="\$json" --header='Content-Type:application/json' 'https://depot.haiku-os.org/__api/v2/pkg/get-pkg' | jq -r '.result.versions[].hpkgDownloadURL')
-        echo "Downloading \$package..."
-        wget -q "\$url"
-        echo "Extracting \$package..."
-        "$__RootfsDir/package_extract.sh" \$package*.hpkg
+	json='{"name":"'"\$package"'","repositorySourceCode":"haikuports_$__BuildArch","versionType":"LATEST","naturalLanguageCode":"en"}'
+	echo "Getting download URL for \$package..."
+	url=\$(wget -qO- --post-data="\$json" --header='Content-Type:application/json' 'https://depot.haiku-os.org/__api/v2/pkg/get-pkg' | jq -r '.result.versions[].hpkgDownloadURL' 2>/dev/null)
+	if [ \$? -eq 0 ]; then
+		echo "Downloading \$package at \$url..."
+		wget -q "\$url"
+		if [ \$? -eq 0 ]; then
+			echo "Extracting \$package..."
+			"$__RootfsDir/package_extract.sh" \$package*.hpkg
+			rm \$package*.hpkg
+			found_packages+=("\$package")
+			continue
+		fi
+
+		echo "Unable to download \$package"
+	else
+		echo "Unable to locate \$package for downloading"
+	fi
+	missing_packages+=("\$package")
 done
 
-echo "Downloaded and extracted all packages"
+echo ""
+
+if [ \${#missing_packages[@]} -ne 0 ]; then
+	echo "Missing Packages:"
+	for package in \${missing_packages[@]}; do
+		echo " - \$package"
+	done
+	echo ""
+fi
+
+if [ \${#found_packages[@]} -ne 0 ]; then
+	echo "Installed Packages:"
+	for package in \${found_packages[@]}; do
+		echo " - \$package"
+	done
+else
+	echo "NO packages installed"
+fi
 EOF
 chmod +x "$__RootfsDir/fetch_packages.sh"
 
