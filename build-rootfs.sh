@@ -191,6 +191,27 @@ fi
 EOF
 chmod +x "$__RootfsDir/fetch_packages.sh"
 
+# Find the package_repo command
+__PackageRepoCommand=`echo $__RootfsDir/generated/objects/*/*/release/tools/package_repo/package_repo`
+
+# Create a script for listing the packages from the repo
+cat >"$__RootfsDir/list_packages.sh" <<EOF
+#!/usr/bin/env bash
+
+wget -q -O "$__RootfsDir/repo.$__BuildArch" "https://eu.hpkg.haiku-os.org/haikuports/master/$__BuildArch/current/repo"
+if [ -z "$__BuildSecondaryArch" ]; then
+	wget -q -O "repo.$__BuildSecondaryArch" "https://eu.hpkg.haiku-os.org/haikuports/master/$__BuildSecondaryArch/current/repo"
+fi
+
+"$__PackageRepoCommand" list "$__RootfsDir/repo.$__BuildArch" | sed -e '1,/packages:/d' -e 's/t//g' | sort > "$__RootfsDir/packages.$__BuildArch.list"
+if [ -z "$__BuildSecondaryArch" ]; then
+	"$__PackageRepoCommand" list "$__RootfsDir/repo.$__BuildSecondaryArch" | sed -e '1,/packages:/d' -e 's/t//g' | sort > "$__RootfsDir/packages.$__BuildSecondaryArch.list"
+fi
+
+cat "$__RootfsDir/packages.$__BuildArch.list" "$__RootfsDir/packages.$__BuildSecondaryArch.list" 2>/dev/null | sort >"$__RootfsDir/packages.list"
+EOF
+chmod +x "$__RootfsDir/list_packages.sh"
+
 # Clean up
 rm -rf "$__RootfsDir/tmp/" "$__RootfsDir/generated/objects/haiku/" "$__RootfsDir/generated/objects/common"
 rm -rf "$__RootfsDir/generated/attributes/" "$__RootfsDir/generated/download/" "$__RootfsDir/generated/build_packages/"
@@ -205,6 +226,11 @@ fi
 echo ""
 echo "Your cross-compiler is available in $__RootfsDir/generated/cross-tools-{ARCH}/bin/,"
 echo "and the sysroot extracted into $__RootfsDir/boot/system."
+echo ""
+echo "To get a list of current packages in HaikuPorts, run $__RootfsDir/list_packages.sh,"
+echo "which will download the repo files and generate a list of packages saved into"
+echo "\`$__RootfsDir/packages.list\`. You can run this at any time to regenerate the list of"
+echo "current packages available in the package repos."
 echo ""
 echo "You can also use $__RootfsDir/package_extract.sh to extract packages into the sysroot,"
 echo "or use $__RootfsDir/fetch_packages.sh with a space separated list of package names to"
