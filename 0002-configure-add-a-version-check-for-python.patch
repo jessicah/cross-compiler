@@ -1,0 +1,38 @@
+From a70a4b406950f6aaef021cdbc384d050cbdf9911 Mon Sep 17 00:00:00 2001
+From: Jessica Hamilton <jessica.l.hamilton@gmail.com>
+Date: Thu, 12 Sep 2024 12:21:22 +0000
+Subject: [PATCH 2/4] configure: add a version check for python.
+
+Tooling used by HaikuDepotServer relies on typing features that
+exist in Python >= 3.9.
+---
+ configure | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/configure b/configure
+index aedf093cdb..1390f22b82 100755
+--- a/configure
++++ b/configure
+@@ -889,6 +889,19 @@ else
+ 	exit 1
+ fi
+ 
++# check is python is new enough
++# usage of python by HDS requires at least 3.9
++PYTHON_VERSION=$("$HOST_PYTHON" --version | sed -e 's/Python //')
++
++case $PYTHON_VERSION in
++	2.* | 3.[1-8].*)
++		echo "Python $PYTHON_VERSION is too old, need at least Python 3.9"
++		exit 1
++		;;
++	*)
++		;;
++esac
++
+ # check if nasm can actually output ELF files
+ # (the stock version in OSX can't)
+ # XXX: should probably only test for x86* arch
+-- 
+2.25.1
+

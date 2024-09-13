@@ -1,0 +1,47 @@
+From 8e9fed3307f345e1c8cd9f630a83004ecdcefa6e Mon Sep 17 00:00:00 2001
+From: Jessica Hamilton <jessica.l.hamilton@gmail.com>
+Date: Thu, 12 Sep 2024 23:47:36 +0000
+Subject: [PATCH 3/4] build: add an optional UserProfileConfig.
+
+Like UserBuildConfig, but read before the rules are loaded,
+allowing HAIKU_BUILD_PROFILE to be overridden to use a given
+build profile without specifying on the command line.
+---
+ Jamrules                       | 7 +++++++
+ build/jam/CommandLineArguments | 2 +-
+ 2 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/Jamrules b/Jamrules
+index f242565d9c..ede46729e3 100644
+--- a/Jamrules
++++ b/Jamrules
+@@ -12,6 +12,13 @@ if $(JAMBASEDATE) < 2018 {
+ 		"by updating Jam itself.)" ;
+ }
+ 
++# Allow for a separate UserProfileConfig per output directory.
++local userProfileConfig
++	= [ GLOB $(HAIKU_OUTPUT_DIR) : UserProfileConfig ] ;
++if $(userProfileConfig) {
++	include $(userProfileConfig) ;
++}
++
+ # Make sure HAIKU_TOP is a relative path (and prefer it to be the current or
+ # parent directory.)
+ #
+diff --git a/build/jam/CommandLineArguments b/build/jam/CommandLineArguments
+index 26259bdc4c..8208570d51 100644
+--- a/build/jam/CommandLineArguments
++++ b/build/jam/CommandLineArguments
+@@ -4,7 +4,7 @@ rule ProcessCommandLineArguments
+ {
+ 	# analyze and optionally replace jam's target parameters
+ 	HAIKU_ORIGINAL_JAM_TARGETS = $(JAM_TARGETS) ;
+-	HAIKU_BUILD_PROFILE = ;
++	HAIKU_BUILD_PROFILE ?= ;
+ 	if $(JAM_TARGETS) {
+ 		switch $(JAM_TARGETS[1]) {
+ 			# If the target to be built is "all" (i.e. the default) and we're in
+-- 
+2.25.1
+

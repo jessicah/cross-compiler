@@ -4,11 +4,15 @@ set -e
 
 usage()
 {
-	echo "Usage: $0 BuildArch [--jobs <N>] [--rootfsdir <directory>]"
+	echo "Usage: $0 BuildArch [--jobs <N>] [--rootfsdir <directory>] [--haiku-repo <uri>] [--bt-repo <uri>] [-- {extra args}]"
 	echo "BuildArch can be: x86, x86_64, x86h, x86_gcc2h"
-	echo "--rootfsdir dir - optional, defaults to current dir, where to"
-	echo "                  put cross-compiler and Haiku sysroot."
-	echo "--jobs N        - optional, restrict to N jobs."
+	echo "--rootfsdir dir   - defaults to the current dir, where to"
+	echo "                    put cross-compiler and Haiku sysroot."
+	echo "--jobs N          - restrict to N jobs, defaults to MAXCPUS."
+	echo "--haiku-repo uri  - alternate uri to clone Haiku repo from."
+	echo "--bt-repo uri     - alternate uri to clone buildtools from."
+	echo "Any additional arguments after -- will be passed directly to"
+	echo "Haiku's configure script."
 	exit 1
 }
 
@@ -48,13 +52,29 @@ while :; do
 			shift
 			MAXJOBS=$1
 			;;
-		*)
-			usage
+		--haiku-repo|-haiku-repo)
+			shift
+			__HaikuRepo=$1
 			;;
+		--bt-repo|-bt-repo)
+			shift
+			__BuildToolsRepo=$1
+			;;
+		--)
+			shift
+			break
+			;;
+		*)
+			echo "Unknown option: $1"
+			usage
 	esac
 
 	shift
 done
+
+if [ $# -gt 0 ]; then
+	__ExtraArgs="$@"
+fi
 
 
 if [ -z "$__RootfsDir" ] && [ ! -z "$ROOTFS_DIR" ]; then
@@ -66,6 +86,14 @@ echo "Using $__RootfsDir..."
 mkdir -p $__RootfsDir
 __RootfsDir="$( cd "$__RootfsDir" && pwd )"
 
+if [ -z "$__HaikuRepo" ]; then
+	__HaikuRepo="https://github.com/haiku/haiku"
+fi
+
+if [ -z "$__BuildToolsRepo" ]; then
+	__BuildToolsRepo="https://github.com/haiku/buildtools"
+fi
+
 JOBS=${MAXJOBS:="$(getconf _NPROCESSORS_ONLN)"}
 
 if [ -z "$__BuildSecondaryArch" ]; then
@@ -76,16 +104,16 @@ fi
 mkdir -p "$__RootfsDir/tmp"
 if [ ! -e "$__RootfsDir/tmp/haiku/.git" ]; then
 	cd "$__RootfsDir/tmp"
-	git clone https://github.com/haiku/haiku
+	git clone "$__HaikuRepo"
 	cd haiku && git remote add review https://review.haiku-os.org/haiku && git fetch --tags review
 else
 	echo "WARN: skipping clone of haiku repo, already exists"
-	cd haiku && git fetch review
+	cd "$__RootfsDir/tmp/haiku" && git fetch review
 fi
 
 if [ ! -e "$__RootfsDir/tmp/buildtools/.git" ]; then
 	cd "$__RootfsDir/tmp"
-	git clone --depth=1 https://github.com/haiku/buildtools
+	git clone --depth=1 "$__BuildToolsRepo"
 else
 	echo "WARN: skipping clone of buildtools repo, already exists"
 fi
@@ -93,28 +121,31 @@ fi
 # Fetch some patches that haven't been merged yet
 cd "$__RootfsDir/tmp/haiku"
 git reset --hard review/master
-## add development build profile (slimmer than nightly)
-git am "$__InitialDir/0002-Add-extra-build-profile-development.patch"
+git am "$__InitialDir/0001-configure-add-missing-sanity-check-for-cross-tools-o.patch"
+git am "$__InitialDir/0002-configure-add-a-version-check-for-python.patch"
+git am "$__InitialDir/0003-build-add-an-optional-UserProfileConfig.patch"
+git am "$__InitialDir/0004-configure-allow-specifying-python-to-use-with-python.patch"
 
 # Build jam
 echo 'Building jam buildtool'
 cd "$__RootfsDir/tmp/buildtools/jam"
 make
+./jam0 -sBINDIR="$__RootfsDir/bin" install
 
 # Configure cross tools
 echo "Building cross tools with $JOBS parallel jobs"
 mkdir -p "$__RootfsDir/generated"
 cd "$__RootfsDir/generated"
 if [ -z "$__BuildSecondaryArch" ]; then
-	"$__RootfsDir/tmp/haiku/configure" -j"$JOBS" --sysroot "$__RootfsDir" --cross-tools-source "$__RootfsDir/tmp/buildtools" --build-cross-tools $__BuildArch
+	"$__RootfsDir/tmp/haiku/configure" -j"$JOBS" --sysroot "$__RootfsDir" --cross-tools-source "$__RootfsDir/tmp/buildtools" --build-cross-tools $__BuildArch $__ExtraArgs
 else
-	"$__RootfsDir/tmp/haiku/configure" -j"$JOBS" --sysroot "$__RootfsDir" --cross-tools-source "$__RootfsDir/tmp/buildtools" --build-cross-tools $__BuildArch --build-cross-tools $__BuildSecondaryArch
+	"$__RootfsDir/tmp/haiku/configure" -j"$JOBS" --sysroot "$__RootfsDir" --cross-tools-source "$__RootfsDir/tmp/buildtools" --build-cross-tools $__BuildArch --build-cross-tools $__BuildSecondaryArch $__ExtraArgs
 fi
 
 # Build haiku packages
 echo 'Building Haiku packages and package tool'
-echo 'HAIKU_BUILD_PROFILE = "development-raw" ;' > UserProfileConfig
-"$__RootfsDir/tmp/buildtools/jam/jam0" -j"$JOBS" -q '<build>package' '<repository>Haiku'
+echo 'HAIKU_BUILD_PROFILE = "nightly-raw" ;' > UserProfileConfig
+"$__RootfsDir/bin/jam" -j"$JOBS" -q '<build>package' '<repository>Haiku'
 
 # Find the package command
 __PackageCommand=`echo $__RootfsDir/generated/objects/*/*/release/tools/package/package`

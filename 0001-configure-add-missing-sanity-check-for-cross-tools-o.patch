@@ -1,0 +1,26 @@
+From 3e4068ec9f6cceb6edd603014e753c002ff2f28c Mon Sep 17 00:00:00 2001
+From: Jessica Hamilton <jessica.l.hamilton@gmail.com>
+Date: Thu, 12 Sep 2024 12:20:46 +0000
+Subject: [PATCH 1/4] configure: add missing sanity check for cross tools
+ options.
+
+---
+ configure | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure b/configure
+index 67902dfe07..aedf093cdb 100755
+--- a/configure
++++ b/configure
+@@ -916,7 +916,7 @@ if [ "$HAIKU_HOST_BUILD_ONLY" = 1 ]; then
+ 	HAIKU_STRIP=$invalidCommand
+ else
+ 	# On Haiku determine target architectures and tools automatically.
+-	if [ -z "$targetArchs" ]; then
++	if [ -z "$targetArchs" -o -n "$targetArchs" -a -z "$buildCrossTools" ]; then
+ 		if [ $HOST_PLATFORM != haiku_host ]; then
+ 			echo "Please specify the build tools to use or build (via" \
+ 				"--cross-tools-prefix or --build-cross-tools) or specify a" \
+-- 
+2.25.1
+
