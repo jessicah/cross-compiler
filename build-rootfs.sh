@@ -121,10 +121,7 @@ fi
 # Fetch some patches that haven't been merged yet
 cd "$__RootfsDir/tmp/haiku"
 git reset --hard review/master
-git am "$__InitialDir/0001-configure-add-missing-sanity-check-for-cross-tools-o.patch"
-git am "$__InitialDir/0002-configure-add-a-version-check-for-python.patch"
 git am "$__InitialDir/0003-build-add-an-optional-UserProfileConfig.patch"
-git am "$__InitialDir/0004-configure-allow-specifying-python-to-use-with-python.patch"
 
 # Build jam
 echo 'Building jam buildtool'
