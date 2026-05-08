@@ -121,6 +121,7 @@ fi
 # Fetch some patches that haven't been merged yet
 cd "$__RootfsDir/tmp/haiku"
 git reset --hard review/master
+git am --abort || true
 git am "$__InitialDir/0003-build-add-an-optional-UserProfileConfig.patch"
 
 # Build jam
